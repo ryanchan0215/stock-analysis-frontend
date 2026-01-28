@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Wallet, TrendingUp, Plus, RefreshCw } from 'lucide-react';
+import { Wallet, Plus, RefreshCw } from 'lucide-react';
 import PortfolioStats from '../components/PortfolioStats';
 import HoldingsTable from '../components/HoldingsTable';
 import AddHoldingModal from '../components/AddHoldingModal';

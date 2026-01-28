@@ -248,17 +248,6 @@ const AddHoldingModal: React.FC<AddHoldingModalProps> = ({ portfolioId, onClose,
   );
 };
 
-const headerStyle: React.CSSProperties = {
-  padding: '1rem',
-  textAlign: 'left',
-  fontSize: '0.875rem',
-  fontWeight: '600',
-  color: '#6b7280',
-};
 
-const cellStyle: React.CSSProperties = {
-  padding: '1rem',
-  fontSize: '0.875rem',
-};
 
 export default AddHoldingModal;

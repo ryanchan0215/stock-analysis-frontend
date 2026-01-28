@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Target, TrendingDown, TrendingUp } from 'lucide-react';
+import { Trash2, Target} from 'lucide-react';
 
 interface Holding {
   id: string;
