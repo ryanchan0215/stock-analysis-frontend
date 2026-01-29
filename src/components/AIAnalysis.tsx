@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import { Brain, Loader } from 'lucide-react';
-import axios from 'axios';
+import api from '../services/api';
 
 interface AIAnalysisProps {
   symbol: string;
-  stockData?: any;  // ✅ 新加：接收完整股票數據
+  stockData?: any;
 }
 
 const AIAnalysis: React.FC<AIAnalysisProps> = ({ symbol, stockData }) => {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [modelInfo, setModelInfo] = useState<{ model: string; provider: string } | null>(null);
 
-  // ✅ 計算信號分析（同 SignalAnalysis 一樣）
   const calculateSignals = () => {
     if (!stockData?.technical) return null;
 
     const { technical, quote } = stockData;
 
-    // MACD 信號
     const macdSignal = () => {
       if (!technical.macd) return { status: 'neutral', text: '無數據', strength: 0 };
       const { macd, signal, histogram } = technical.macd;
@@ -38,7 +37,6 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ symbol, stockData }) => {
       return { status: 'neutral', text: `觀望中`, strength: 5 };
     };
 
-    // RSI 信號
     const rsiSignal = () => {
       if (!technical.rsi) return { status: 'neutral', text: '無數據', strength: 0 };
       const rsi = technical.rsi;
@@ -53,7 +51,6 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ symbol, stockData }) => {
       }
     };
 
-    // MA 信號
     const maSignal = () => {
       if (!technical.ma50 || !technical.ma200) return { status: 'neutral', text: '無數據', strength: 0 };
       const { ma50, ma200 } = technical;
@@ -64,7 +61,6 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ symbol, stockData }) => {
       }
     };
 
-    // 布林通道信號
     const bollingerSignal = () => {
       if (!technical.bollingerBands) return { status: 'neutral', text: '無數據', strength: 0 };
       const { upper, lower } = technical.bollingerBands;
@@ -84,7 +80,6 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ symbol, stockData }) => {
       bollinger: bollingerSignal()
     };
 
-    // 計算綜合評分
     let bullishScore = 0;
     let bearishScore = 0;
     Object.values(signals).forEach((sig: any) => {
@@ -114,26 +109,23 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ symbol, stockData }) => {
     setError('');
 
     try {
-      // ✅ 計算信號
       const signalData = calculateSignals();
-
-      // ✅ 構建 Prompt（包含信號分析）
       const enhancedPrompt = buildEnhancedPrompt(stockData, signalData);
 
-        // ✅ Debug Log
-    console.log('📤 Sending Prompt to AI:');
-    console.log(enhancedPrompt);
-    console.log('📰 News in Prompt:', enhancedPrompt.includes('📰 **最新新聞'));
+      console.log('📤 Sending Prompt to AI:');
+      console.log(enhancedPrompt);
 
-
-      const response = await axios.post(
-        `http://localhost:5000/api/analysis/stock/${symbol}`,
-        {
-          customPrompt: enhancedPrompt  // ✅ 傳送自訂 Prompt
-        }
-      );
+      const response = await api.post(`/analysis/stock/${symbol}`, {
+        customPrompt: enhancedPrompt
+      });
 
       setAnalysis(response.data.data.analysis);
+      setModelInfo({
+        model: response.data.data.model,
+        provider: response.data.data.provider
+      });
+
+      console.log(`✅ Analysis by ${response.data.data.provider} - Model: ${response.data.data.model}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'AI 分析失敗');
     } finally {
@@ -141,21 +133,13 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ symbol, stockData }) => {
     }
   };
 
- // ✅ 構建增強版 Prompt
-const buildEnhancedPrompt = (data: any, signals: any) => {
-  if (!data || !signals) return '';
+  const buildEnhancedPrompt = (data: any, signals: any) => {
+    if (!data || !signals) return '';
 
-  const { quote, technical, profile, news } = data;  // ✅ 加入 news
+    const { quote, technical, profile, news } = data;
+    const { overall, signals: sig } = signals;
 
-   console.log('🔍 AI Prompt Data:', {
-    hasNews: !!news,
-    newsCount: news?.length || 0,
-    news: news
-  });
-
-  const { overall, signals: sig } = signals;
-
-  return `請用繁體中文、廣東話風格分析以下股票，並**重點參考我哋系統計算出嘅信號分析**：
+    return `請用繁體中文、廣東話風格分析以下股票，並**重點參考我哋系統計算出嘅信號分析**：
 
 📊 **系統信號分析結果**：
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -203,34 +187,22 @@ ${i + 1}. 《${n.headline}》
    來源：${n.source}
    時間：${new Date(parseInt(n.datetime) * 1000).toLocaleDateString('zh-HK', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
    摘要：${n.summary ? n.summary.substring(0, 200) : '(無摘要)'}
-   
-   **呢條新聞對股價嘅影響：**
-   ${i === 0 && n.headline.includes('Loses') ? '（稀釋風險，短期利空）' : ''}
-   ${i === 1 && n.headline.includes('Upgrade') ? '（分析師升級，長期利好）' : ''}
-   ${i === 2 && n.headline.includes('registers') ? '（股份轉售，供應壓力）' : ''}
-   ${i === 3 && n.headline.includes('Too Late') ? '（估值分析，參考意見）' : ''}
-   ${i === 4 && n.headline.includes('Down') ? '（融資稀釋，短期利空）' : ''}
 `).join('\n')}
 
 **🔥 新聞分析要求（必須做）：**
 1. 逐條分析每條新聞對股價嘅正面/負面影響
 2. 解釋點解呢啲新聞會影響投資決策
-3. 如果有矛盾嘅新聞（例如：有升級預測，但又有稀釋風險），要解釋點樣平衡
+3. 如果有矛盾嘅新聞，要解釋點樣平衡
 4. 最後總結：新聞整體係利好定利空？影響有幾大？
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ` : ''}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 **⚠️ 重要提示（必須遵守）**：
 1. 請**同我哋系統計算嘅信號分析做對比**
 2. 如果你嘅分析同系統唔同，請解釋原因
-3. 要指出系統可能冇考慮到嘅因素（例如：基本面、市場情緒、新聞事件）
+3. 要指出系統可能冇考慮到嘅因素
 ${news && news.length > 0 ? `
-4. **🔥 最重要：你必須逐條分析上面 ${news.length} 條新聞，唔可以只提一句「有新聞」就算！**
-   - 每條新聞要講係利好定利空
-   - 要解釋點解會影響股價
-   - 要講呢啲新聞改變咗你幾多投資決策
+4. **🔥 最重要：你必須逐條分析上面 ${news.length} 條新聞**
 ` : ''}
 
 請按以下結構分析（用繁體中文、廣東話）：
@@ -244,18 +216,11 @@ ${news && news.length > 0 ? `
 
 ${news && news.length > 0 ? `
 #### 📰 新聞分析（必須逐條講）
-**請逐條分析呢 ${news.length} 條新聞：**
-${news.slice(0, 5).map((n: any, i: number) => `
-${i + 1}. 《${n.headline.substring(0, 60)}...》
-   → 呢條新聞係利好定利空？
-   → 對股價影響有幾大（1-10 分）？
-   → 改變咗你幾多投資決策？
-`).join('\n')}
+**請逐條分析呢 ${news.length} 條新聞**
 
 **新聞整體影響總結：**
 - 正面新聞 vs 負面新聞比例？
 - 整體係利好定利空？
-- 新聞影響短期定長期？
 
 ---
 ` : ''}
@@ -263,22 +228,19 @@ ${i + 1}. 《${n.headline.substring(0, 60)}...》
 #### 🏢 基本面分析
 （業務發展、財務表現、行業趨勢）
 
-#### 📊 宏觀經濟
-（全球經濟、科技行業趨勢）
-
 ### 🎯 三種情境
 1. 樂觀：突破 $${(quote?.currentPrice * 1.05).toFixed(2)} 可以點
 2. 悲觀：跌破 $${(quote?.currentPrice * 0.95).toFixed(2)} 要點做
 3. 中性：橫行要點等
 
 ### 💡 最終建議
-（綜合技術面 + 基本面 + 市場情緒 ${news && news.length > 0 ? '+ 新聞影響' : ''}）
+（綜合技術面 + 基本面 + 市場情緒${news && news.length > 0 ? ' + 新聞影響' : ''}）
 
 ### 🔥 一句總結
 
 記住：用「可以考慮」、「留意」呢啲詞，唔好直接講「買」或「賣」。
 要解釋你同系統信號嘅分析有咩唔同！`;
-};
+  };
 
   return (
     <div style={{ marginTop: '2rem' }}>
@@ -294,6 +256,11 @@ ${i + 1}. 《${n.headline.substring(0, 60)}...》
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Brain size={24} />
             🤖 AI 投資分析
+            {modelInfo && (
+              <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 'normal' }}>
+                (by {modelInfo.provider})
+              </span>
+            )}
           </h2>
           <button
             onClick={generateAnalysis}
@@ -321,7 +288,6 @@ ${i + 1}. 《${n.headline.substring(0, 60)}...》
           </button>
         </div>
 
-        {/* ✅ 提示用戶系統已計算信號 */}
         {stockData?.technical && (
           <div style={{
             backgroundColor: '#eff6ff',
@@ -351,19 +317,37 @@ ${i + 1}. 《${n.headline.substring(0, 60)}...》
         )}
 
         {analysis && (
-          <div
-            style={{
-              whiteSpace: 'pre-wrap',
-              lineHeight: '1.8',
-              color: '#374151',
-              backgroundColor: '#f9fafb',
-              padding: '1.5rem',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb',
-            }}
-          >
-            {analysis}
-          </div>
+          <>
+            {modelInfo && (
+              <div style={{
+                fontSize: '0.75rem',
+                color: '#6b7280',
+                marginBottom: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                🤖 由 <strong>{modelInfo.provider}</strong> 提供
+                （模型：<code style={{ backgroundColor: '#f3f4f6', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
+                  {modelInfo.model}
+                </code>）
+              </div>
+            )}
+            
+            <div
+              style={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: '1.8',
+                color: '#374151',
+                backgroundColor: '#f9fafb',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+              }}
+            >
+              {analysis}
+            </div>
+          </>
         )}
 
         {!analysis && !loading && !error && (
