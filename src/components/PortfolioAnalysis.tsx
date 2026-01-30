@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Brain, Save } from 'lucide-react';
-import axios from 'axios';
+import api from '../services/api';  // ✅ 改用呢個
 
 interface Holding {
   id?: string;
@@ -66,7 +66,7 @@ const PortfolioAnalysis: React.FC<PortfolioAnalysisProps> = ({ holdings, portfol
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/analysis/holdings', {
+     const response = await api.post('/analysis/holdings', {  // ✅ 改呢行
         holdings: holdings.map(h => ({
           symbol: h.symbol,
           quantity: h.quantity,
@@ -160,8 +160,8 @@ const PortfolioAnalysis: React.FC<PortfolioAnalysisProps> = ({ holdings, portfol
     setSavingStates(prev => ({ ...prev, [advice.symbol]: true }));
 
     try {
-      await axios.patch(
-        `http://localhost:5000/api/holdings/${holdingId}/ai-suggestions`,
+      await api.patch(  // ✅ 改呢行
+        `/holdings/${holdingId}/ai-suggestions`,
         {
           confidence: advice.confidence,
           stopLoss: advice.stopLoss,

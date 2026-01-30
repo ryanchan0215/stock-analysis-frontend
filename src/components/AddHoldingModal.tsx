@@ -25,7 +25,7 @@ const AddHoldingModal: React.FC<AddHoldingModalProps> = ({ portfolioId, onClose,
     setError('');
 
     try {
-      await axios.post('http://localhost:5000/api/holdings', {
+      await api.post('/holdings', {  // ✅ 改呢行
         portfolio_id: portfolioId,
         symbol: formData.symbol.toUpperCase(),
         quantity: parseFloat(formData.quantity),

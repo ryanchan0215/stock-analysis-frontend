@@ -62,7 +62,7 @@ const PortfolioPage: React.FC = () => {
 
   const fetchPortfolios = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/portfolios/user/${userId}`);
+      const response = await api.get(`/portfolios/user/${userId}`);  // ✅ 改呢行
       setPortfolios(response.data.data);
     } catch (error) {
       console.error('獲取組合失敗:', error);
@@ -72,7 +72,7 @@ const PortfolioPage: React.FC = () => {
   const fetchHoldings = async (portfolioId: string) => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:5000/api/holdings/portfolio/${portfolioId}`);
+      const response = await api.get(`/holdings/portfolio/${portfolioId}`);  // ✅ 改呢行
       setHoldings(response.data.data);
     } catch (error) {
       console.error('獲取持倉失敗:', error);
@@ -86,7 +86,7 @@ const PortfolioPage: React.FC = () => {
     if (!name) return;
 
     try {
-      await axios.post('http://localhost:5000/api/portfolios', {
+      await api.post('/portfolios', {  // ✅ 改呢行
         user_id: userId,
         name,
         description: '',
@@ -102,7 +102,7 @@ const PortfolioPage: React.FC = () => {
     if (!window.confirm('確定要刪除此持倉？')) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/holdings/${holdingId}`);
+      await api.delete(`/holdings/${holdingId}`);  // ✅ 改呢行
       if (selectedPortfolio) {
         fetchHoldings(selectedPortfolio.id);
       }
