@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';  // ✅ 改用呢個
 import { Wallet, Plus, RefreshCw } from 'lucide-react';
 import PortfolioStats from '../components/PortfolioStats';
 import HoldingsTable from '../components/HoldingsTable';

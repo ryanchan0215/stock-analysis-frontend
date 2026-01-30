@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';  // ✅ 改用呢個
 import { X } from 'lucide-react';
 
 interface AddHoldingModalProps {
