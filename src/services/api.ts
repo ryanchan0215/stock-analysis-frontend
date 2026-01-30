@@ -1,12 +1,11 @@
 import axios from 'axios';
 
-// Debug logs
-console.log('🔍 Environment:', import.meta.env.MODE);
-console.log('🔍 VITE_API_URL:', import.meta.env.VITE_API_URL);
-console.log('🔍 All env vars:', import.meta.env);
+// ✅ Create React App 用 process.env，唔係 import.meta.env
+console.log('🔍 Environment:', process.env.NODE_ENV);
+console.log('🔍 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
 
-const API_BASE_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api`
+const API_BASE_URL = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api`
   : 'http://localhost:5000/api';
 
 console.log('🔍 API_BASE_URL:', API_BASE_URL);
